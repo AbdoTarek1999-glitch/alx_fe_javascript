@@ -1,5 +1,5 @@
 // =============================
-// Dynamic Quote Generator with Server Sync, Conflict Resolution & syncQuotes()
+// Dynamic Quote Generator with Server Sync, Conflict Resolution & User Alerts
 // =============================
 
 // DOM Elements
@@ -63,7 +63,7 @@ function addQuote(quote) {
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(quotes));
   displayRandomQuote();
   syncStatus.textContent = "🟡 New quote added locally. Syncing soon...";
-  syncQuotes(); // Sync immediately after adding
+  syncQuotes(); // Sync after adding
 }
 
 // =============================
@@ -134,6 +134,9 @@ async function syncQuotes() {
   await uploadQuotesToServer();
   await fetchQuotesFromServer();
   syncStatus.textContent = "✅ Sync complete!";
+  
+  // ✅ REQUIRED: alert user after successful sync
+  alert("Quotes synced with server!");
 }
 
 // =============================
