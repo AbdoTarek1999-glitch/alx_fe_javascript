@@ -1,5 +1,5 @@
 // =============================
-// Dynamic Quote Generator with Server Sync
+// Dynamic Quote Generator with Server Sync and Conflict Resolution
 // =============================
 
 // Get DOM elements
@@ -31,14 +31,14 @@ function displayRandomQuote() {
 }
 
 // =============================
-// Add New Quote (Form Generator)
+// Create Add Quote Form
 // =============================
 function createAddQuoteForm() {
   const form = document.createElement('form');
   const input = document.createElement('input');
   const button = document.createElement('button');
 
-  input.placeholder = 'Enter new quote';
+  input.placeholder = 'Enter a new quote';
   input.required = true;
   button.textContent = 'Add Quote';
 
@@ -63,57 +63,80 @@ function addQuote(quote) {
   quotes.push(quote);
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(quotes));
   displayRandomQuote();
-  syncStatus.textContent = "🟡 New quote added locally (will sync soon)";
+  syncStatus.textContent = "🟡 New quote added locally (syncing soon)";
+  uploadQuotesToServer(); // simulate sync after adding
 }
 
 // =============================
-// Step 1: Simulate Server Interaction
+// Fetch Quotes (GET)
 // =============================
 async function fetchQuotesFromServer() {
   try {
-    syncStatus.textContent = "🔄 Syncing with server...";
+    syncStatus.textContent = "🔄 Fetching quotes from server...";
     const response = await fetch('https://jsonplaceholder.typicode.com/posts');
     const data = await response.json();
 
-    // Simulate server quotes (take 5 sample posts)
-    const serverQuotes = data.slice(0, 5).map(item => item.title);
-
+    // Simulate server quotes
+    const serverQuotes = data.slice(0, 5).map(post => post.title);
     resolveConflicts(serverQuotes);
-    syncStatus.textContent = "✅ Synced successfully!";
+
+    syncStatus.textContent = "✅ Quotes synced from server!";
   } catch (error) {
-    syncStatus.textContent = "❌ Sync failed!";
-    console.error("Error fetching from server:", error);
+    syncStatus.textContent = "❌ Failed to fetch from server!";
+    console.error("Fetch error:", error);
   }
 }
 
 // =============================
-// Step 2: Conflict Resolution Logic
+// Upload Quotes (POST)
+// =============================
+async function uploadQuotesToServer() {
+  try {
+    syncStatus.textContent = "📤 Uploading quotes to server...";
+    const response = await fetch('https://jsonplaceholder.typicode.com/posts', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',  // ✅ required for JSON upload
+      },
+      body: JSON.stringify({ quotes: quotes }),  // ✅ send quotes array
+    });
+
+    const result = await response.json();
+    console.log("Server response:", result);
+
+    syncStatus.textContent = "✅ Quotes uploaded successfully!";
+  } catch (error) {
+    syncStatus.textContent = "❌ Upload failed!";
+    console.error("Upload error:", error);
+  }
+}
+
+// =============================
+// Conflict Resolution
 // =============================
 function resolveConflicts(serverQuotes) {
   const localQuotes = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || [];
 
-  // Merge both lists (server data takes precedence)
-  const mergedQuotes = [...new Set([...serverQuotes, ...localQuotes])];
+  // Merge local + server, prioritizing server content
+  const merged = [...new Set([...serverQuotes, ...localQuotes])];
+  quotes = merged;
 
-  quotes = mergedQuotes;
-  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(mergedQuotes));
-
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged));
   displayRandomQuote();
 
-  // Notify user
-  alert("Data synced successfully! Conflicts resolved (server data prioritized).");
+  alert("Data synced successfully — server data prioritized.");
 }
 
 // =============================
-// Step 3: Auto Sync with Server
+// Periodic Auto-Sync
 // =============================
 function startAutoSync() {
-  // Sync every 15 seconds (you can increase/decrease this interval)
+  // Fetch from server every 15 seconds
   setInterval(fetchQuotesFromServer, 15000);
 }
 
 // =============================
-// Step 4: Initialize App
+// Initialize App
 // =============================
 document.addEventListener('DOMContentLoaded', () => {
   displayRandomQuote();
