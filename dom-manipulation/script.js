@@ -1,16 +1,16 @@
 // =============================
-// Dynamic Quote Generator with Server Sync and Conflict Resolution
+// Dynamic Quote Generator with Server Sync, Conflict Resolution & syncQuotes()
 // =============================
 
-// Get DOM elements
+// DOM Elements
 const quoteDisplay = document.getElementById('quoteDisplay');
 const addQuoteBtn = document.getElementById('addQuoteBtn');
 const syncStatus = document.getElementById('syncStatus');
 
-// Local storage key
+// Local Storage Key
 const LOCAL_STORAGE_KEY = 'quotesData';
 
-// Load existing quotes or default ones
+// Load saved quotes or defaults
 let quotes = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || [
   "The best way to get started is to quit talking and begin doing.",
   "Don’t let yesterday take up too much of today.",
@@ -25,7 +25,6 @@ function displayRandomQuote() {
     quoteDisplay.textContent = "No quotes available!";
     return;
   }
-
   const randomIndex = Math.floor(Math.random() * quotes.length);
   quoteDisplay.textContent = quotes[randomIndex];
 }
@@ -57,18 +56,18 @@ function createAddQuoteForm() {
 }
 
 // =============================
-// Add Quote Function
+// Add a New Quote
 // =============================
 function addQuote(quote) {
   quotes.push(quote);
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(quotes));
   displayRandomQuote();
-  syncStatus.textContent = "🟡 New quote added locally (syncing soon)";
-  uploadQuotesToServer(); // simulate sync after adding
+  syncStatus.textContent = "🟡 New quote added locally. Syncing soon...";
+  syncQuotes(); // Sync immediately after adding
 }
 
 // =============================
-// Fetch Quotes (GET)
+// Fetch Quotes from Server (GET)
 // =============================
 async function fetchQuotesFromServer() {
   try {
@@ -76,11 +75,11 @@ async function fetchQuotesFromServer() {
     const response = await fetch('https://jsonplaceholder.typicode.com/posts');
     const data = await response.json();
 
-    // Simulate server quotes
+    // Simulate server quotes from post titles
     const serverQuotes = data.slice(0, 5).map(post => post.title);
     resolveConflicts(serverQuotes);
 
-    syncStatus.textContent = "✅ Quotes synced from server!";
+    syncStatus.textContent = "✅ Quotes fetched and merged from server!";
   } catch (error) {
     syncStatus.textContent = "❌ Failed to fetch from server!";
     console.error("Fetch error:", error);
@@ -88,7 +87,7 @@ async function fetchQuotesFromServer() {
 }
 
 // =============================
-// Upload Quotes (POST)
+// Upload Quotes to Server (POST)
 // =============================
 async function uploadQuotesToServer() {
   try {
@@ -96,9 +95,9 @@ async function uploadQuotesToServer() {
     const response = await fetch('https://jsonplaceholder.typicode.com/posts', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',  // ✅ required for JSON upload
+        'Content-Type': 'application/json', // ✅ Required header
       },
-      body: JSON.stringify({ quotes: quotes }),  // ✅ send quotes array
+      body: JSON.stringify({ quotes: quotes }), // ✅ Send quotes as JSON
     });
 
     const result = await response.json();
@@ -117,22 +116,31 @@ async function uploadQuotesToServer() {
 function resolveConflicts(serverQuotes) {
   const localQuotes = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || [];
 
-  // Merge local + server, prioritizing server content
+  // Merge unique quotes — prioritize server content
   const merged = [...new Set([...serverQuotes, ...localQuotes])];
   quotes = merged;
 
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged));
   displayRandomQuote();
 
-  alert("Data synced successfully — server data prioritized.");
+  console.log("Conflict resolved. Server quotes prioritized.");
 }
 
 // =============================
-// Periodic Auto-Sync
+// Main Sync Function
+// =============================
+async function syncQuotes() {
+  syncStatus.textContent = "🔁 Syncing quotes with server...";
+  await uploadQuotesToServer();
+  await fetchQuotesFromServer();
+  syncStatus.textContent = "✅ Sync complete!";
+}
+
+// =============================
+// Auto Sync Every 15 Seconds
 // =============================
 function startAutoSync() {
-  // Fetch from server every 15 seconds
-  setInterval(fetchQuotesFromServer, 15000);
+  setInterval(syncQuotes, 15000);
 }
 
 // =============================
