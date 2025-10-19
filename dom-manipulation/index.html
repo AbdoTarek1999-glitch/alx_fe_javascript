@@ -60,22 +60,22 @@
 <body>
   <h1>Dynamic Quote Generator</h1>
 
+  <!-- Category Filter -->
+  <select id="categoryFilter" onchange="filterQuotes()">
+    <option value="all">All Categories</option>
+  </select>
+
   <!-- Quote Display Area -->
-  <div id="quoteDisplay"></div>
+  <div id="quoteContainer"></div>
 
-  <div id="controls">
-    <button id="newQuote">Show New Quote</button>
-    <button id="showAll">Show All Quotes</button>
-  </div>
-
-  <!-- Import / Export -->
-  <div id="importExport">
-    <input type="file" id="importFile" accept=".json" />
-    <button id="importBtn">Import Quotes</button>
-    <button id="exportBtn">Export Quotes</button>
-  </div>
-
-  <div id="message"></div>
+  <!-- Add Quote Form -->
+  <form id="addQuoteForm" onsubmit="addQuote(event)">
+    <h3>Add a New Quote</h3>
+    <input type="text" id="quoteText" placeholder="Enter quote" required>
+    <input type="text" id="quoteAuthor" placeholder="Enter author" required>
+    <input type="text" id="quoteCategory" placeholder="Enter category" required>
+    <button type="submit">Add Quote</button>
+  </form>
 
   <script src="script.js"></script>
 </body>
