@@ -1,68 +1,158 @@
-// Select DOM elements
+// =============================
+// Dynamic Quote Generator with Server Sync, Conflict Resolution & User Alerts
+// =============================
+
+// DOM Elements
 const quoteDisplay = document.getElementById('quoteDisplay');
-const addQuoteForm = document.getElementById('addQuoteForm');
-const quoteInput = document.getElementById('quoteInput');
+const addQuoteBtn = document.getElementById('addQuoteBtn');
+const syncStatus = document.getElementById('syncStatus');
 
-// Initialize quotes array
-let quotes = JSON.parse(localStorage.getItem('quotes')) || [];
+// Local Storage Key
+const LOCAL_STORAGE_KEY = 'quotesData';
 
-// Display a random quote
+// Load saved quotes or defaults
+let quotes = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || [
+  "The best way to get started is to quit talking and begin doing.",
+  "Don’t let yesterday take up too much of today.",
+  "It’s not whether you get knocked down, it’s whether you get up."
+];
+
+// =============================
+// Display a Random Quote
+// =============================
 function displayRandomQuote() {
   if (quotes.length === 0) {
-    quoteDisplay.textContent = 'No quotes available.';
+    quoteDisplay.textContent = "No quotes available!";
     return;
   }
   const randomIndex = Math.floor(Math.random() * quotes.length);
   quoteDisplay.textContent = quotes[randomIndex];
 }
 
-// Add a new quote
-function addQuote(event) {
-  event.preventDefault(); // Prevent page reload
-  const newQuote = quoteInput.value.trim();
-  if (newQuote) {
-    quotes.push(newQuote);
-    localStorage.setItem('quotes', JSON.stringify(quotes));
-    quoteInput.value = '';
-    displayRandomQuote();
+// =============================
+// Create Add Quote Form
+// =============================
+function createAddQuoteForm() {
+  const form = document.createElement('form');
+  const input = document.createElement('input');
+  const button = document.createElement('button');
+
+  input.placeholder = 'Enter a new quote';
+  input.required = true;
+  button.textContent = 'Add Quote';
+
+  form.appendChild(input);
+  form.appendChild(button);
+  document.body.appendChild(form);
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const newQuote = input.value.trim();
+    if (newQuote) {
+      addQuote(newQuote);
+      input.value = '';
+    }
+  });
+}
+
+// =============================
+// Add a New Quote
+// =============================
+function addQuote(quote) {
+  quotes.push(quote);
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(quotes));
+  displayRandomQuote();
+  syncStatus.textContent = "🟡 New quote added locally. Syncing soon...";
+  syncQuotes(); // Sync after adding
+}
+
+// =============================
+// Fetch Quotes from Server (GET)
+// =============================
+async function fetchQuotesFromServer() {
+  try {
+    syncStatus.textContent = "🔄 Fetching quotes from server...";
+    const response = await fetch('https://jsonplaceholder.typicode.com/posts');
+    const data = await response.json();
+
+    // Simulate server quotes from post titles
+    const serverQuotes = data.slice(0, 5).map(post => post.title);
+    resolveConflicts(serverQuotes);
+
+    syncStatus.textContent = "✅ Quotes fetched and merged from server!";
+  } catch (error) {
+    syncStatus.textContent = "❌ Failed to fetch from server!";
+    console.error("Fetch error:", error);
   }
 }
 
-// Fetch quotes from simulated server
-async function fetchQuotesFromServer() {
-  const response = await fetch('https://jsonplaceholder.typicode.com/posts');
-  const data = await response.json();
-  const serverQuotes = data.slice(0, 5).map(post => post.title); // Take first 5 titles as quotes
-  return serverQuotes;
+// =============================
+// Upload Quotes to Server (POST)
+// =============================
+async function uploadQuotesToServer() {
+  try {
+    syncStatus.textContent = "📤 Uploading quotes to server...";
+    const response = await fetch('https://jsonplaceholder.typicode.com/posts', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json', // ✅ Required header
+      },
+      body: JSON.stringify({ quotes: quotes }), // ✅ Send quotes as JSON
+    });
+
+    const result = await response.json();
+    console.log("Server response:", result);
+
+    syncStatus.textContent = "✅ Quotes uploaded successfully!";
+  } catch (error) {
+    syncStatus.textContent = "❌ Upload failed!";
+    console.error("Upload error:", error);
+  }
 }
 
-// Sync local quotes with server
-async function syncQuotes() {
-  const serverQuotes = await fetchQuotesFromServer();
+// =============================
+// Conflict Resolution
+// =============================
+function resolveConflicts(serverQuotes) {
+  const localQuotes = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || [];
 
-  // Conflict resolution: server data takes precedence
-  const combinedQuotes = [...new Set([...serverQuotes, ...quotes])];
+  // Merge unique quotes — prioritize server content
+  const merged = [...new Set([...serverQuotes, ...localQuotes])];
+  quotes = merged;
 
-  // Simulate sending local quotes to the server
-  await fetch('https://jsonplaceholder.typicode.com/posts', {
-    method: 'POST',  // ← sending data
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ quotes: combinedQuotes })
-  });
-
-  // Update local storage
-  quotes = combinedQuotes;
-  localStorage.setItem('quotes', JSON.stringify(quotes));
-
-  alert('Quotes synced with server!');
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged));
   displayRandomQuote();
+
+  console.log("Conflict resolved. Server quotes prioritized.");
 }
 
-// Event listeners
-addQuoteForm.addEventListener('submit', addQuote);
+// =============================
+// Main Sync Function
+// =============================
+async function syncQuotes() {
+  syncStatus.textContent = "🔁 Syncing quotes with server...";
+  await uploadQuotesToServer();
+  await fetchQuotesFromServer();
+  syncStatus.textContent = "✅ Sync complete!";
+  
+  // ✅ REQUIRED: alert user after successful sync
+  alert("Quotes synced with server!");
+}
 
-// Periodic syncing every 30 seconds
-setInterval(syncQuotes, 30000);
+// =============================
+// Auto Sync Every 15 Seconds
+// =============================
+function startAutoSync() {
+  setInterval(syncQuotes, 15000);
+}
 
-// Initial display
-displayRandomQuote();
+// =============================
+// Initialize App
+// =============================
+document.addEventListener('DOMContentLoaded', () => {
+  displayRandomQuote();
+  createAddQuoteForm();
+  startAutoSync();
+});
+
+addQuoteBtn.addEventListener('click', displayRandomQuote);
