@@ -15,12 +15,12 @@ const addQuoteButton = document.getElementById("add-quote-btn");
 const quoteInput = document.getElementById("quote-input");
 const categoryInput = document.getElementById("category-input");
 
-// ✅ Function to display a random quote
-function displayRandomQuote() {
+// ✅ Function to show a random quote (required name & innerHTML)
+function showRandomQuote() {
   const randomIndex = Math.floor(Math.random() * quotes.length);
   const randomQuote = quotes[randomIndex];
-  quoteText.textContent = `"${randomQuote.text}"`;
-  quoteCategory.textContent = `— ${randomQuote.category}`;
+  quoteText.innerHTML = `"${randomQuote.text}"`;
+  quoteCategory.innerHTML = `— ${randomQuote.category}`;
 }
 
 // ✅ Function to add a new quote
@@ -33,7 +33,6 @@ function addQuote() {
     return;
   }
 
-  // Add the new quote to the array
   const newQuote = { text: newText, category: newCategory };
   quotes.push(newQuote);
 
@@ -41,14 +40,14 @@ function addQuote() {
   quoteInput.value = "";
   categoryInput.value = "";
 
-  // Update the DOM to show the newly added quote
-  quoteText.textContent = `"${newQuote.text}"`;
-  quoteCategory.textContent = `— ${newQuote.category}`;
+  // Display the newly added quote
+  quoteText.innerHTML = `"${newQuote.text}"`;
+  quoteCategory.innerHTML = `— ${newQuote.category}`;
 }
 
 // ✅ Event listeners
-newQuoteButton.addEventListener("click", displayRandomQuote);
+newQuoteButton.addEventListener("click", showRandomQuote);
 addQuoteButton.addEventListener("click", addQuote);
 
-// ✅ Display a quote by default on page load
-displayRandomQuote();
+// ✅ Display one random quote on page load
+showRandomQuote();
