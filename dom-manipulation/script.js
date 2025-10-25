@@ -1,4 +1,4 @@
-// ✅ Array of quotes (each quote is an object with text and category)
+// ✅ Array of quotes
 const quotes = [
   { text: "The best way to predict the future is to create it.", category: "Motivation" },
   { text: "Success is not in what you have, but who you are.", category: "Inspiration" },
@@ -11,11 +11,8 @@ const quotes = [
 const quoteText = document.getElementById("quote-text");
 const quoteCategory = document.getElementById("quote-category");
 const newQuoteButton = document.getElementById("new-quote-btn");
-const addQuoteButton = document.getElementById("add-quote-btn");
-const quoteInput = document.getElementById("quote-input");
-const categoryInput = document.getElementById("category-input");
 
-// ✅ Function to show a random quote (required name & innerHTML)
+// ✅ Function to show a random quote (uses innerHTML)
 function showRandomQuote() {
   const randomIndex = Math.floor(Math.random() * quotes.length);
   const randomQuote = quotes[randomIndex];
@@ -24,30 +21,61 @@ function showRandomQuote() {
 }
 
 // ✅ Function to add a new quote
-function addQuote() {
-  const newText = quoteInput.value.trim();
-  const newCategory = categoryInput.value.trim();
-
-  if (newText === "" || newCategory === "") {
-    alert("Please enter both a quote and a category.");
-    return;
-  }
-
+function addQuote(newText, newCategory) {
   const newQuote = { text: newText, category: newCategory };
   quotes.push(newQuote);
-
-  // Clear inputs
-  quoteInput.value = "";
-  categoryInput.value = "";
-
-  // Display the newly added quote
   quoteText.innerHTML = `"${newQuote.text}"`;
   quoteCategory.innerHTML = `— ${newQuote.category}`;
 }
 
+// ✅ Function to create a form dynamically for adding quotes
+function createAddQuoteForm() {
+  // إنشاء عناصر النموذج
+  const form = document.createElement("form");
+  form.id = "add-quote-form";
+
+  const textInput = document.createElement("input");
+  textInput.type = "text";
+  textInput.placeholder = "Enter quote text";
+  textInput.id = "quote-input";
+
+  const categoryInput = document.createElement("input");
+  categoryInput.type = "text";
+  categoryInput.placeholder = "Enter category";
+  categoryInput.id = "category-input";
+
+  const addButton = document.createElement("button");
+  addButton.type = "button";
+  addButton.id = "add-quote-btn";
+  addButton.textContent = "Add Quote";
+
+  // عند الضغط على الزر
+  addButton.addEventListener("click", () => {
+    const newText = textInput.value.trim();
+    const newCategory = categoryInput.value.trim();
+
+    if (newText === "" || newCategory === "") {
+      alert("Please fill in both fields!");
+      return;
+    }
+
+    addQuote(newText, newCategory);
+    textInput.value = "";
+    categoryInput.value = "";
+  });
+
+  // إضافة كل العناصر للنموذج
+  form.appendChild(textInput);
+  form.appendChild(categoryInput);
+  form.appendChild(addButton);
+
+  // إدراج النموذج داخل الصفحة
+  document.body.appendChild(form);
+}
+
 // ✅ Event listeners
 newQuoteButton.addEventListener("click", showRandomQuote);
-addQuoteButton.addEventListener("click", addQuote);
 
-// ✅ Display one random quote on page load
+// ✅ Initialize
 showRandomQuote();
+createAddQuoteForm();
