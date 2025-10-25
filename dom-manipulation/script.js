@@ -1,164 +1,54 @@
-// =============================
-// Dynamic Quote Generator with Server Sync, Conflict Resolution & User Alerts
-// =============================
-
-// =============================
-// DOM Elements
-// =============================
-const quoteDisplay = document.getElementById('quoteDisplay');
-const addQuoteBtn = document.getElementById('addQuoteBtn');
-const syncStatus = document.getElementById('syncStatus');
-
-// =============================
-// Local Storage Key
-// =============================
-const LOCAL_STORAGE_KEY = 'quotesData';
-
-// =============================
-// Load saved quotes or defaults
-// =============================
-let quotes = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || [
-  "The best way to get started is to quit talking and begin doing.",
-  "Don’t let yesterday take up too much of today.",
-  "It’s not whether you get knocked down, it’s whether you get up."
+// ✅ Array of quotes (each quote is an object with text and category)
+const quotes = [
+  { text: "The best way to predict the future is to create it.", category: "Motivation" },
+  { text: "Success is not in what you have, but who you are.", category: "Inspiration" },
+  { text: "Don’t watch the clock; do what it does. Keep going.", category: "Productivity" },
+  { text: "Your limitation—it’s only your imagination.", category: "Motivation" },
+  { text: "Hard work beats talent when talent doesn’t work hard.", category: "Discipline" }
 ];
 
-// =============================
-// Display a Random Quote
-// =============================
+// ✅ Select DOM elements
+const quoteText = document.getElementById("quote-text");
+const quoteCategory = document.getElementById("quote-category");
+const newQuoteButton = document.getElementById("new-quote-btn");
+const addQuoteButton = document.getElementById("add-quote-btn");
+const quoteInput = document.getElementById("quote-input");
+const categoryInput = document.getElementById("category-input");
+
+// ✅ Function to display a random quote
 function displayRandomQuote() {
-  if (quotes.length === 0) {
-    quoteDisplay.textContent = "No quotes available!";
-    return; // خروج من الدالة لو مفيش اقتباسات
-  }
   const randomIndex = Math.floor(Math.random() * quotes.length);
-  quoteDisplay.textContent = quotes[randomIndex];
+  const randomQuote = quotes[randomIndex];
+  quoteText.textContent = `"${randomQuote.text}"`;
+  quoteCategory.textContent = `— ${randomQuote.category}`;
 }
 
-// =============================
-// Create Add Quote Form
-// =============================
-function createAddQuoteForm() {
-  const form = document.createElement('form');
-  const input = document.createElement('input');
-  const button = document.createElement('button');
+// ✅ Function to add a new quote
+function addQuote() {
+  const newText = quoteInput.value.trim();
+  const newCategory = categoryInput.value.trim();
 
-  input.placeholder = 'Enter a new quote';
-  input.required = true;
-  button.textContent = 'Add Quote';
-
-  form.appendChild(input);
-  form.appendChild(button);
-  document.body.appendChild(form);
-
-  form.addEventListener('submit', (e) => {
-    e.preventDefault(); // منع إعادة تحميل الصفحة
-    const newQuote = input.value.trim();
-    if (newQuote) {
-      addQuote(newQuote);
-      input.value = '';
-    }
-  });
-}
-
-// =============================
-// Add a New Quote
-// =============================
-function addQuote(quote) {
-  quotes.push(quote);
-  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(quotes));
-  displayRandomQuote();
-  syncStatus.textContent = "🟡 New quote added locally. Syncing soon...";
-  syncQuotes(); // مزامنة بعد الإضافة
-}
-
-// =============================
-// Fetch Quotes from Server (GET)
-// =============================
-async function fetchQuotesFromServer() {
-  try {
-    syncStatus.textContent = "🔄 Fetching quotes from server...";
-    const response = await fetch('https://jsonplaceholder.typicode.com/posts');
-    const data = await response.json();
-
-    // استخدام عناوين المنشورات كاقتباسات
-    const serverQuotes = data.slice(0, 5).map(post => post.title);
-    resolveConflicts(serverQuotes);
-
-    syncStatus.textContent = "✅ Quotes fetched and merged from server!";
-  } catch (error) {
-    syncStatus.textContent = "❌ Failed to fetch from server!";
-    console.error("Fetch error:", error);
+  if (newText === "" || newCategory === "") {
+    alert("Please enter both a quote and a category.");
+    return;
   }
+
+  // Add the new quote to the array
+  const newQuote = { text: newText, category: newCategory };
+  quotes.push(newQuote);
+
+  // Clear inputs
+  quoteInput.value = "";
+  categoryInput.value = "";
+
+  // Update the DOM to show the newly added quote
+  quoteText.textContent = `"${newQuote.text}"`;
+  quoteCategory.textContent = `— ${newQuote.category}`;
 }
 
-// =============================
-// Upload Quotes to Server (POST)
-// =============================
-async function uploadQuotesToServer() {
-  try {
-    syncStatus.textContent = "📤 Uploading quotes to server...";
-    const response = await fetch('https://jsonplaceholder.typicode.com/posts', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json', // ضروري علشان السيرفر يعرف نوع البيانات
-      },
-      body: JSON.stringify({ quotes: quotes }), // إرسال الاقتباسات كـ JSON
-    });
+// ✅ Event listeners
+newQuoteButton.addEventListener("click", displayRandomQuote);
+addQuoteButton.addEventListener("click", addQuote);
 
-    const result = await response.json();
-    console.log("Server response:", result);
-
-    syncStatus.textContent = "✅ Quotes uploaded successfully!";
-  } catch (error) {
-    syncStatus.textContent = "❌ Upload failed!";
-    console.error("Upload error:", error);
-  }
-}
-
-// =============================
-// Conflict Resolution
-// =============================
-function resolveConflicts(serverQuotes) {
-  const localQuotes = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || [];
-
-  // دمج الاقتباسات بدون تكرار مع أولوية لاقتباسات السيرفر
-  const merged = [...new Set([...serverQuotes, ...localQuotes])];
-  quotes = merged;
-
-  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged));
-  displayRandomQuote();
-
-  console.log("Conflict resolved. Server quotes prioritized.");
-}
-
-// =============================
-// Main Sync Function
-// =============================
-async function syncQuotes() {
-  syncStatus.textContent = "🔁 Syncing quotes with server...";
-  await uploadQuotesToServer();
-  await fetchQuotesFromServer();
-  syncStatus.textContent = "✅ Sync complete!";
-  
-  // ✅ تنبيه للمستخدم بعد نجاح المزامنة
-  alert("Quotes synced with server!");
-}
-
-// =============================
-// Auto Sync Every 15 Seconds
-// =============================
-function startAutoSync() {
-  setInterval(syncQuotes, 15000);
-}
-
-// =============================
-// Initialize App
-// =============================
-document.addEventListener('DOMContentLoaded', () => {
-  displayRandomQuote();
-  createAddQuoteForm();
-  startAutoSync();
-});
-
-addQuoteBtn.addEventListener('click', displayRandomQuote);
+// ✅ Display a quote by default on page load
+displayRandomQuote();
